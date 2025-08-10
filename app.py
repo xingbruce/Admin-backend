@@ -2,26 +2,26 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from supabase import create_client, Client
+from supabase_client import get_supabase_client
 from datetime import datetime
 
-load_dotenv()
+load_dotenv()  # only used when running locally; Railway will use env vars
 
+# envs
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+FLASK_SECRET = os.getenv("FLASK_SECRET", "change-this-secret")
+
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise RuntimeError("Please set SUPABASE_URL and SUPABASE_KEY in environment")
+    raise RuntimeError("Please set SUPABASE_URL and SUPABASE_KEY environment variables")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-APP_SECRET = os.getenv("FLASK_SECRET", "change-this-secret")
-ADMIN_USER = os.getenv("ADMIN_USER", "admin")
-ADMIN_PASS = os.getenv("ADMIN_PASS", "admin123")
+supabase = get_supabase_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = APP_SECRET
+app.secret_key = FLASK_SECRET
 
-# ---------- Utility helpers ----------
 def ok_resp(data=None, msg=None):
     return jsonify({"status": "ok", "data": data, "message": msg})
 
@@ -36,11 +36,10 @@ def get_user_by_username(username):
     return (data[0] if data else None), None
 
 def seed_test_user():
-    # attempt to create a test user if not exists
     username = "testuser"
     user, err = get_user_by_username(username)
     if err:
-        print("Seed check error (probably missing table):", err)
+        print("Seed check error - maybe tables missing or permission issue:", err)
         return
     if user:
         print("Test user already exists.")
@@ -50,7 +49,7 @@ def seed_test_user():
         "username": username,
         "password_hash": password_hash,
         "balance": 5000.00,
-        "broker": "John Smith",
+        "broker": "Default Broker",
         "is_frozen": False,
         "created_at": datetime.utcnow().isoformat()
     }
@@ -60,9 +59,13 @@ def seed_test_user():
     else:
         print("Created test user: testuser / testpass")
 
-# ---------- Routes ----------
+# --- Authentication & helpers ---
 @app.route("/")
 def root():
+    return redirect(url_for("admin_login"))
+
+@app.route("/admin", methods=["GET"])
+def admin_root():
     return redirect(url_for("admin_login"))
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -70,7 +73,7 @@ def admin_login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        if username == ADMIN_USER and password == ADMIN_PASS:
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session["admin_logged_in"] = True
             return redirect(url_for("admin_dashboard"))
         else:
@@ -94,12 +97,11 @@ def admin_required(fn):
 @app.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
-    return render_template("admin_dashboard.html", admin_user=ADMIN_USER)
+    return render_template("admin_dashboard.html", admin_user=ADMIN_USERNAME)
 
-# ---------- API: Users ----------
+# --- API: Users ---
 @app.route("/api/users", methods=["GET"])
 def api_list_users():
-    # optional query param: username
     username = request.args.get("username")
     q = supabase.table("users").select("*")
     if username:
@@ -119,7 +121,6 @@ def api_create_user():
             return err_resp(f"Missing field: {r}")
     username = payload["username"]
     password = payload["password"]
-    # do not allow duplicates
     existing, _ = get_user_by_username(username)
     if existing:
         return err_resp("Username already exists", 409)
@@ -143,7 +144,6 @@ def api_update_user(user_id):
     payload = request.json or {}
     allowed = {"balance", "broker", "is_frozen", "username"}
     update = {k: payload[k] for k in payload if k in allowed}
-    # coerce types
     if "balance" in update:
         try:
             update["balance"] = float(update["balance"])
@@ -179,7 +179,7 @@ def api_delete_user(user_id):
         return err_resp("Failed to delete user: " + str(res.error))
     return ok_resp(None, "User deleted")
 
-# ---------- API: Notifications ----------
+# --- API: Notifications ---
 @app.route("/api/notifications", methods=["POST"])
 @admin_required
 def api_send_notification():
@@ -209,7 +209,7 @@ def api_get_notifications():
         return err_resp("Failed to fetch notifications: " + str(res.error))
     return ok_resp(res.data)
 
-# ---------- Startup: seed test user ----------
+# --- Seed on startup ---
 with app.app_context():
     try:
         seed_test_user()
