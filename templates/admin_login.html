@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard - Diver Bank</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f9fafb; }
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      margin-left: 1rem;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    main {
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h2 {
+      color: #003366;
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    th, td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f2f5;
+    }
+    button {
+      background: #003366;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #002244;
+    }
+    .welcome-msg {
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Diver Bank Admin Dashboard</h1>
+    <nav>
+      <a href="{{ url_for('admin_logout') }}">Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <p class="welcome-msg">Welcome, <strong>{{ admin_user }}</strong></p>
+
+    <h2>User Management</h2>
+    <p>Use the API or extend this dashboard to manage users, reset passwords, or send notifications.</p>
+    <p>This is a placeholder. You can build user list and controls here later.</p>
+
+    <!-- Example user table structure you might use later -->
+    <!--
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Username</th><th>Balance</th><th>Broker</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td><td>testuser</td><td>$5000</td><td>Default Broker</td><td>Active</td><td><button>Edit</button></td>
+        </tr>
+      </tbody>
+    </table>
+    -->
+  </main>
+</body>
+</html>
