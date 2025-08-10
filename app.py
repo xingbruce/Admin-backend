@@ -5,67 +5,58 @@ from dotenv import load_dotenv
 from supabase_client import get_supabase_client
 from datetime import datetime
 
-load_dotenv()  # only used when running locally; Railway will use env vars
+load_dotenv()
 
-# envs
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-FLASK_SECRET = os.getenv("FLASK_SECRET", "King-bruce-112233")
+ADMIN_PASSWORD_HASH = generate_password_hash(os.getenv("ADMIN_PASSWORD", "admin123"))
+FLASK_SECRET = os.getenv("FLASK_SECRET", "your-secret-key")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise RuntimeError("Please set SUPABASE_URL and SUPABASE_KEY environment variables")
+    raise RuntimeError("SUPABASE_URL and SUPABASE_KEY must be set")
 
 supabase = get_supabase_client(SUPABASE_URL, SUPABASE_KEY)
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(__name__)
 app.secret_key = FLASK_SECRET
 
+# Helpers
 def ok_resp(data=None, msg=None):
     return jsonify({"status": "ok", "data": data, "message": msg})
 
-def err_resp(message, code=400):
-    return jsonify({"status": "error", "message": message}), code
+def err_resp(msg, code=400):
+    return jsonify({"status": "error", "message": msg}), code
+
+def admin_required(fn):
+    from functools import wraps
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return redirect(url_for("admin_login"))
+        return fn(*args, **kwargs)
+    return wrapper
 
 def get_user_by_username(username):
     res = supabase.table("users").select("*").eq("username", username).limit(1).execute()
     if res.error:
-        return None, res.error
-    data = res.data or []
-    return (data[0] if data else None), None
+        return None
+    return res.data[0] if res.data else None
 
-def seed_test_user():
-    username = "testuser"
-    user, err = get_user_by_username(username)
-    if err:
-        print("Seed check error - maybe tables missing or permission issue:", err)
-        return
-    if user:
-        print("Test user already exists.")
-        return
-    password_hash = generate_password_hash("testpass")
-    new_user = {
-        "username": username,
-        "password_hash": password_hash,
-        "balance": 5000.00,
-        "broker": "Default Broker",
-        "is_frozen": False,
-        "created_at": datetime.utcnow().isoformat()
-    }
-    res = supabase.table("users").insert(new_user).execute()
+def get_user_by_id(user_id):
+    res = supabase.table("users").select("*").eq("id", user_id).limit(1).execute()
     if res.error:
-        print("Failed to create test user:", res.error)
-    else:
-        print("Created test user: testuser / testpass")
+        return None
+    return res.data[0] if res.data else None
 
-# --- Authentication & helpers ---
+def is_user_frozen(user_id):
+    user = get_user_by_id(user_id)
+    return user.get("is_frozen", False) if user else False
+
+# Routes
+
 @app.route("/")
 def root():
-    return redirect(url_for("admin_login"))
-
-@app.route("/admin", methods=["GET"])
-def admin_root():
     return redirect(url_for("admin_login"))
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -73,11 +64,10 @@ def admin_login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        if username == ADMIN_USERNAME and check_password_hash(ADMIN_PASSWORD_HASH, password):
             session["admin_logged_in"] = True
             return redirect(url_for("admin_dashboard"))
-        else:
-            return render_template("admin_login.html", error="Invalid credentials")
+        return render_template("admin_login.html", error="Invalid credentials")
     return render_template("admin_login.html")
 
 @app.route("/admin/logout")
@@ -85,28 +75,17 @@ def admin_logout():
     session.pop("admin_logged_in", None)
     return redirect(url_for("admin_login"))
 
-def admin_required(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*a, **kw):
-        if not session.get("admin_logged_in"):
-            return redirect(url_for("admin_login"))
-        return fn(*a, **kw)
-    return wrapper
-
 @app.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
     return render_template("admin_dashboard.html", admin_user=ADMIN_USERNAME)
 
-# --- API: Users ---
+# --- API for Users ---
+
 @app.route("/api/users", methods=["GET"])
+@admin_required
 def api_list_users():
-    username = request.args.get("username")
-    q = supabase.table("users").select("*")
-    if username:
-        q = q.ilike("username", f"%{username}%")
-    res = q.execute()
+    res = supabase.table("users").select("*").execute()
     if res.error:
         return err_resp("Failed to fetch users: " + str(res.error))
     return ok_resp(res.data)
@@ -114,23 +93,21 @@ def api_list_users():
 @app.route("/api/users", methods=["POST"])
 @admin_required
 def api_create_user():
-    payload = request.json or {}
+    data = request.json
     required = ["username", "password"]
     for r in required:
-        if r not in payload:
+        if r not in data:
             return err_resp(f"Missing field: {r}")
-    username = payload["username"]
-    password = payload["password"]
-    existing, _ = get_user_by_username(username)
-    if existing:
+    if get_user_by_username(data["username"]):
         return err_resp("Username already exists", 409)
-    password_hash = generate_password_hash(password)
+
+    password_hash = generate_password_hash(data["password"])
     user_row = {
-        "username": username,
+        "username": data["username"],
         "password_hash": password_hash,
-        "balance": float(payload.get("balance", 0.0)),
-        "broker": payload.get("broker", ""),
-        "is_frozen": bool(payload.get("is_frozen", False)),
+        "balance": float(data.get("balance", 0)),
+        "broker": data.get("broker", ""),
+        "is_frozen": False,
         "created_at": datetime.utcnow().isoformat()
     }
     res = supabase.table("users").insert(user_row).execute()
@@ -141,35 +118,26 @@ def api_create_user():
 @app.route("/api/users/<int:user_id>", methods=["PUT"])
 @admin_required
 def api_update_user(user_id):
-    payload = request.json or {}
-    allowed = {"balance", "broker", "is_frozen", "username"}
-    update = {k: payload[k] for k in payload if k in allowed}
-    if "balance" in update:
+    data = request.json
+    update_fields = {}
+    if "balance" in data:
         try:
-            update["balance"] = float(update["balance"])
+            update_fields["balance"] = float(data["balance"])
         except:
             return err_resp("Invalid balance")
-    if "is_frozen" in update:
-        update["is_frozen"] = bool(update["is_frozen"])
-    if not update:
+    if "broker" in data:
+        update_fields["broker"] = data["broker"]
+    if "is_frozen" in data:
+        update_fields["is_frozen"] = bool(data["is_frozen"])
+    if "username" in data:
+        update_fields["username"] = data["username"]
+    if not update_fields:
         return err_resp("No valid fields to update")
-    res = supabase.table("users").update(update).eq("id", user_id).execute()
+
+    res = supabase.table("users").update(update_fields).eq("id", user_id).execute()
     if res.error:
         return err_resp("Failed to update user: " + str(res.error))
     return ok_resp(res.data, "User updated")
-
-@app.route("/api/users/<int:user_id>/reset_password", methods=["POST"])
-@admin_required
-def api_reset_password(user_id):
-    payload = request.json or {}
-    new_password = payload.get("new_password")
-    if not new_password:
-        return err_resp("Missing new_password")
-    password_hash = generate_password_hash(new_password)
-    res = supabase.table("users").update({"password_hash": password_hash}).eq("id", user_id).execute()
-    if res.error:
-        return err_resp("Failed to reset password: " + str(res.error))
-    return ok_resp(None, "Password updated")
 
 @app.route("/api/users/<int:user_id>", methods=["DELETE"])
 @admin_required
@@ -179,18 +147,66 @@ def api_delete_user(user_id):
         return err_resp("Failed to delete user: " + str(res.error))
     return ok_resp(None, "User deleted")
 
-# --- API: Notifications ---
+# --- API for Transactions ---
+
+@app.route("/api/transactions", methods=["GET"])
+@admin_required
+def api_list_transactions():
+    user_id = request.args.get("user_id")
+    query = supabase.table("transactions").select("*").order("created_at", desc=True)
+    if user_id:
+        query = query.eq("user_id", int(user_id))
+    res = query.execute()
+    if res.error:
+        return err_resp("Failed to fetch transactions: " + str(res.error))
+    return ok_resp(res.data)
+
+@app.route("/api/transactions", methods=["POST"])
+@admin_required
+def api_add_transaction():
+    data = request.json
+    required = ["user_id", "amount", "type", "description"]
+    for r in required:
+        if r not in data:
+            return err_resp(f"Missing field: {r}")
+
+    # Check if user is frozen
+    if is_user_frozen(data["user_id"]):
+        return err_resp("Account is frozen. Cannot perform transactions.")
+
+    transaction = {
+        "user_id": int(data["user_id"]),
+        "amount": float(data["amount"]),
+        "type": data["type"],  # e.g. "deposit", "withdrawal", "transfer"
+        "description": data["description"],
+        "created_at": datetime.utcnow().isoformat()
+    }
+    res = supabase.table("transactions").insert(transaction).execute()
+    if res.error:
+        return err_resp("Failed to add transaction: " + str(res.error))
+    return ok_resp(res.data, "Transaction added")
+
+@app.route("/api/transactions/<int:transaction_id>", methods=["DELETE"])
+@admin_required
+def api_delete_transaction(transaction_id):
+    res = supabase.table("transactions").delete().eq("id", transaction_id).execute()
+    if res.error:
+        return err_resp("Failed to delete transaction: " + str(res.error))
+    return ok_resp(None, "Transaction deleted")
+
+# --- Notifications ---
+
 @app.route("/api/notifications", methods=["POST"])
 @admin_required
 def api_send_notification():
-    payload = request.json or {}
+    data = request.json
     required = ["user_id", "message"]
     for r in required:
-        if r not in payload:
+        if r not in data:
             return err_resp(f"Missing field: {r}")
     note = {
-        "user_id": int(payload["user_id"]),
-        "message": payload["message"],
+        "user_id": int(data["user_id"]),
+        "message": data["message"],
         "is_read": False,
         "created_at": datetime.utcnow().isoformat()
     }
@@ -200,6 +216,7 @@ def api_send_notification():
     return ok_resp(res.data, "Notification sent")
 
 @app.route("/api/notifications", methods=["GET"])
+@admin_required
 def api_get_notifications():
     user_id = request.args.get("user_id")
     if not user_id:
@@ -209,12 +226,5 @@ def api_get_notifications():
         return err_resp("Failed to fetch notifications: " + str(res.error))
     return ok_resp(res.data)
 
-# --- Seed on startup ---
-with app.app_context():
-    try:
-        seed_test_user()
-    except Exception as e:
-        print("Seed attempt failed:", e)
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=os.getenv("FLASK_DEBUG", "0") == "1")
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)), debug=True)
