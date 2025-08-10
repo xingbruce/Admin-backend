@@ -1,99 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Dashboard - Diver Bank</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f9fafb; }
-    header {
-      background-color: #003366;
-      color: white;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    nav a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-      margin-left: 1rem;
-    }
-    nav a:hover {
-      text-decoration: underline;
-    }
-    main {
-      padding: 2rem;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    h2 {
-      color: #003366;
-      margin-bottom: 1rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 2rem;
-    }
-    th, td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-    th {
-      background-color: #f0f2f5;
-    }
-    button {
-      background: #003366;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #002244;
-    }
-    .welcome-msg {
-      margin-bottom: 2rem;
-      font-size: 1.1rem;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diver Bank Admin Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
-<body>
-  <header>
-    <h1>Diver Bank Admin Dashboard</h1>
-    <nav>
-      <a href="{{ url_for('admin_logout') }}">Logout</a>
-    </nav>
-  </header>
-
-  <main>
-    <p class="welcome-msg">Welcome, <strong>{{ admin_user }}</strong></p>
-
-    <h2>User Management</h2>
-    <p>Use the API or extend this dashboard to manage users, reset passwords, or send notifications.</p>
-    <p>This is a placeholder. You can build user list and controls here later.</p>
-
-    <!-- Example user table structure you might use later -->
-    <!--
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Username</th><th>Balance</th><th>Broker</th><th>Status</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>1</td><td>testuser</td><td>$5000</td><td>Default Broker</td><td>Active</td><td><button>Edit</button></td>
-        </tr>
-      </tbody>
-    </table>
-    -->
-  </main>
+<body class="bg-light d-flex align-items-center vh-100">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4 text-center">Admin Login</h3>
+                        {% if error %}
+                            <div class="alert alert-danger">{{ error }}</div>
+                        {% endif %}
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" id="username" name="username" class="form-control" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" id="password" name="password" class="form-control" required />
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Login</button>
+                        </form>
+                    </div>
+                </div>
+                <p class="text-center mt-3 text-muted">Diver Bank Admin Panel</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
