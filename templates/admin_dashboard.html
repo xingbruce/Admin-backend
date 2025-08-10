@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>Diver Bank — Admin</h1>
+    <div class="top-actions">
+      <span>Signed in as {{ admin_user }}</span>
+      <a class="btn" href="/admin/logout">Logout</a>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Users</h2>
+      <div>
+        <input id="searchUsername" placeholder="Search username"/>
+        <button id="btnSearch">Search</button>
+        <button id="btnRefresh">Refresh</button>
+      </div>
+      <table id="usersTable">
+        <thead>
+          <tr><th>ID</th><th>Username</th><th>Balance</th><th>Broker</th><th>Frozen</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>Create New User</h2>
+      <form id="createUserForm">
+        <label>Username</label><input name="username" required />
+        <label>Password</label><input name="password" required />
+        <label>Starting balance</label><input name="balance" type="number" step="0.01" value="0" />
+        <label>Broker</label><input name="broker" />
+        <label>Status</label>
+        <select name="is_frozen">
+          <option value="false" selected>Active</option>
+          <option value="true">Frozen</option>
+        </select>
+        <button type="submit">Create User</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Send Notification</h2>
+      <form id="notifyForm">
+        <label>User ID</label><input name="user_id" required />
+        <label>Message</label><textarea name="message" required></textarea>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+    <section class="panel small">
+      <h2>Quick Reset Password</h2>
+      <form id="resetForm">
+        <label>User ID</label><input name="user_id" required />
+        <label>New Password</label><input name="new_password" required />
+        <button type="submit">Reset Password</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/static/admin.js"></script>
+</body>
+</html>
