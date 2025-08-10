@@ -12,7 +12,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-FLASK_SECRET = os.getenv("FLASK_SECRET", "change-this-secret")
+FLASK_SECRET = os.getenv("FLASK_SECRET", "King-bruce-112233")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("Please set SUPABASE_URL and SUPABASE_KEY environment variables")
