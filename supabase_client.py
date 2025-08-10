@@ -6,4 +6,4 @@ def get_supabase_client(supabase_url=None, supabase_key=None):
     supabase_key = supabase_key or os.getenv("SUPABASE_KEY")
     if not supabase_url or not supabase_key:
         raise RuntimeError("Supabase URL and Key must be set")
-    return create_client(supabase_url, supabase_key)
+    return 
