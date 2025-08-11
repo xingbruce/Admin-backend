@@ -4,382 +4,292 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Diver Bank Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
   <style>
-    body { padding-top: 60px; }
-    .sidebar { height: 100vh; position: fixed; top: 0; left: 0; width: 250px; background: #343a40; color: white; padding: 1rem; }
-    .sidebar a { color: white; text-decoration: none; display: block; padding: 0.5rem 0; }
-    .sidebar a:hover { background: #495057; }
-    main { margin-left: 260px; padding: 1rem; }
-    .table-responsive { max-height: 400px; overflow-y: auto; }
+    body {
+      overflow-x: hidden;
+    }
+    #sidebar {
+      min-width: 250px;
+      max-width: 250px;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #343a40;
+      color: white;
+      padding-top: 60px;
+      transition: all 0.3s;
+      z-index: 1040;
+    }
+    #sidebar.collapsed {
+      min-width: 80px;
+      max-width: 80px;
+      overflow-x: hidden;
+      padding-top: 60px;
+    }
+    #sidebar .nav-link {
+      color: #adb5bd;
+      font-weight: 500;
+    }
+    #sidebar .nav-link.active, #sidebar .nav-link:hover {
+      color: #fff;
+      background-color: #495057;
+      border-radius: 4px;
+    }
+    #sidebar .nav-link .icon {
+      width: 24px;
+      display: inline-block;
+      margin-right: 10px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+    #sidebar.collapsed .nav-link .label {
+      display: none;
+    }
+    #content {
+      margin-left: 250px;
+      padding: 20px;
+      transition: margin-left 0.3s;
+    }
+    #sidebar.collapsed + #content {
+      margin-left: 80px;
+    }
+    #topbar {
+      height: 60px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-bottom: 1px solid #dee2e6;
+      z-index: 1050;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+    #topbar .brand {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: #343a40;
+    }
+    #topbar .btn-logout {
+      font-weight: 600;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    table th, table td {
+      vertical-align: middle !important;
+    }
   </style>
 </head>
 <body>
-  <nav class="navbar navbar-dark bg-dark fixed-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Diver Bank Admin Dashboard</a>
-      <div>
-        <span class="me-3">Logged in as: {{ admin_user }}</span>
-        <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
-      </div>
-    </div>
+  <!-- Sidebar -->
+  <nav id="sidebar" aria-label="Sidebar Navigation">
+    <ul class="nav flex-column px-2">
+      <li class="nav-item my-1">
+        <a href="#" class="nav-link active" data-section="users" tabindex="0">
+          <span class="icon">👥</span>
+          <span class="label">Users</span>
+        </a>
+      </li>
+      <li class="nav-item my-1">
+        <a href="#" class="nav-link" data-section="transactions" tabindex="0">
+          <span class="icon">💳</span>
+          <span class="label">Transactions</span>
+        </a>
+      </li>
+      <li class="nav-item my-1">
+        <a href="#" class="nav-link" data-section="notifications" tabindex="0">
+          <span class="icon">🔔</span>
+          <span class="label">Notifications</span>
+        </a>
+      </li>
+      <li class="nav-item mt-4">
+        <button id="toggleSidebar" class="btn btn-sm btn-outline-light w-100" type="button" aria-label="Toggle sidebar">
+          Toggle Sidebar
+        </button>
+      </li>
+    </ul>
   </nav>
 
-  <div class="sidebar">
-    <h4>Menu</h4>
-    <a href="#" onclick="showSection('users')">Users</a>
-    <a href="#" onclick="showSection('transactions')">Transactions</a>
-    <a href="#" onclick="showSection('notifications')">Notifications</a>
-  </div>
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="brand">Diver Bank Admin</div>
+    <a href="/admin/logout" class="btn btn-outline-danger btn-logout">Logout</a>
+  </header>
 
-  <main>
-    <section id="users-section">
-      <h2>Users</h2>
-      <button class="btn btn-success mb-2" onclick="showAddUserModal()">Add New User</button>
-      <div class="table-responsive">
-        <table class="table table-striped" id="users-table">
-          <thead>
-            <tr>
-              <th>ID</th><th>Username</th><th>Balance</th><th>Broker</th><th>Frozen</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+  <!-- Main content -->
+  <main id="content" role="main" tabindex="-1">
+    <!-- Users Section -->
+    <section id="users" class="section active" aria-labelledby="users-heading">
+      <h2 id="users-heading" class="mb-4">User Management</h2>
+      <p>Manage users, reset passwords, freeze/unfreeze accounts.</p>
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Balance</th>
+            <th>Broker</th>
+            <th>Frozen</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <!-- User rows inserted dynamically -->
+        </tbody>
+      </table>
     </section>
 
-    <section id="transactions-section" style="display:none;">
-      <h2>Transactions</h2>
-      <button class="btn btn-success mb-2" onclick="showAddTransactionModal()">Add Transaction</button>
-      <div class="table-responsive">
-        <table class="table table-striped" id="transactions-table">
-          <thead>
-            <tr>
-              <th>ID</th><th>User ID</th><th>Amount</th><th>Type</th><th>Description</th><th>Date</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <!-- Transactions Section -->
+    <section id="transactions" class="section" aria-labelledby="transactions-heading">
+      <h2 id="transactions-heading" class="mb-4">Transaction History</h2>
+      <p>View, add, and delete mock transactions.</p>
+      <table class="table table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User ID</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="transactions-table-body">
+          <!-- Transaction rows inserted dynamically -->
+        </tbody>
+      </table>
+      <button id="btnAddTransaction" class="btn btn-primary mt-3">Add Transaction</button>
     </section>
 
-    <section id="notifications-section" style="display:none;">
-      <h2>Notifications</h2>
-      <button class="btn btn-success mb-2" onclick="showAddNotificationModal()">Send Notification</button>
-      <div class="table-responsive">
-        <table class="table table-striped" id="notifications-table">
-          <thead>
-            <tr><th>ID</th><th>User ID</th><th>Message</th><th>Date</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
+    <!-- Notifications Section -->
+    <section id="notifications" class="section" aria-labelledby="notifications-heading">
+      <h2 id="notifications-heading" class="mb-4">Notifications</h2>
+      <p>Send and manage notifications to users.</p>
+      <ul class="list-group" id="notifications-list">
+        <!-- Notification items inserted dynamically -->
+      </ul>
     </section>
   </main>
 
-  <!-- Modals -->
-  <!-- Add User Modal -->
-  <div class="modal" tabindex="-1" id="modal-add-user">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="form-add-user">
-          <div class="modal-header">
-            <h5 class="modal-title">Add New User</h5>
-            <button type="button" class="btn-close" onclick="closeModal('modal-add-user')"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="new-username" class="form-label">Username</label>
-              <input type="text" id="new-username" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="new-password" class="form-label">Password</label>
-              <input type="password" id="new-password" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="new-balance" class="form-label">Balance</label>
-              <input type="number" step="0.01" id="new-balance" class="form-control" value="0" />
-            </div>
-            <div class="mb-3">
-              <label for="new-broker" class="form-label">Broker</label>
-              <input type="text" id="new-broker" class="form-control" />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-user')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create User</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add Transaction Modal -->
-  <div class="modal" tabindex="-1" id="modal-add-transaction">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="form-add-transaction">
-          <div class="modal-header">
-            <h5 class="modal-title">Add Transaction</h5>
-            <button type="button" class="btn-close" onclick="closeModal('modal-add-transaction')"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="trans-user-id" class="form-label">User ID</label>
-              <input type="number" id="trans-user-id" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="trans-amount" class="form-label">Amount</label>
-              <input type="number" step="0.01" id="trans-amount" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="trans-type" class="form-label">Type</label>
-              <select id="trans-type" class="form-select" required>
-                <option value="">Select type</option>
-                <option value="deposit">Deposit</option>
-                <option value="withdrawal">Withdrawal</option>
-                <option value="transfer">Transfer</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="trans-desc" class="form-label">Description</label>
-              <input type="text" id="trans-desc" class="form-control" required />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-transaction')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Add Transaction</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add Notification Modal -->
-  <div class="modal" tabindex="-1" id="modal-add-notification">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="form-add-notification">
-          <div class="modal-header">
-            <h5 class="modal-title">Send Notification</h5>
-            <button type="button" class="btn-close" onclick="closeModal('modal-add-notification')"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="notif-user-id" class="form-label">User ID</label>
-              <input type="number" id="notif-user-id" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label for="notif-message" class="form-label">Message</label>
-              <textarea id="notif-message" class="form-control" rows="3" required></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModal('modal-add-notification')">Cancel</button>
-            <button type="submit" class="btn btn-primary">Send</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
   <script>
-    // Manage visible section
-    function showSection(section) {
-      document.getElementById("users-section").style.display = section === "users" ? "block" : "none";
-      document.getElementById("transactions-section").style.display = section === "transactions" ? "block" : "none";
-      document.getElementById("notifications-section").style.display = section === "notifications" ? "block" : "none";
-    }
+    (() => {
+      const sidebar = document.getElementById("sidebar");
+      const toggleBtn = document.getElementById("toggleSidebar");
+      const navLinks = sidebar.querySelectorAll("a.nav-link");
+      const sections = document.querySelectorAll(".section");
 
-    // Modal helpers
-    function showAddUserModal() {
-      document.getElementById("modal-add-user").style.display = "block";
-    }
-    function showAddTransactionModal() {
-      document.getElementById("modal-add-transaction").style.display = "block";
-    }
-    function showAddNotificationModal() {
-      document.getElementById("modal-add-notification").style.display = "block";
-    }
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
+      // Toggle sidebar collapse
+      toggleBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("collapsed");
+      });
 
-    // Load users
-    async function loadUsers() {
-      const res = await fetch('/api/users');
-      const data = await res.json();
-      if (data.status === "ok") {
-        const tbody = document.querySelector("#users-table tbody");
-        tbody.innerHTML = "";
-        data.data.forEach(u => {
-          tbody.innerHTML += `<tr>
-            <td>${u.id}</td>
-            <td>${u.username}</td>
-            <td>${u.balance.toFixed(2)}</td>
-            <td>${u.broker || ""}</td>
-            <td>${u.is_frozen ? "Yes" : "No"}</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Delete</button>
-              <button class="btn btn-sm btn-primary" onclick="toggleFreeze(${u.id}, ${u.is_frozen})">${u.is_frozen ? "Unfreeze" : "Freeze"}</button>
-            </td>
-          </tr>`;
+      // Section toggle handler
+      navLinks.forEach(link => {
+        link.addEventListener("click", e => {
+          e.preventDefault();
+          const target = e.currentTarget.getAttribute("data-section");
+          if (!target) return;
+
+          // Set active link
+          navLinks.forEach(lnk => lnk.classList.remove("active"));
+          e.currentTarget.classList.add("active");
+
+          // Show corresponding section
+          sections.forEach(section => {
+            section.classList.toggle("active", section.id === target);
+          });
         });
-      } else {
-        alert("Failed to load users: " + data.message);
-      }
-    }
-
-    async function deleteUser(userId) {
-      if (!confirm("Delete user ID " + userId + "?")) return;
-      const res = await fetch(`/api/users/${userId}`, {method: "DELETE"});
-      const data = await res.json();
-      if (data.status === "ok") {
-        loadUsers();
-      } else {
-        alert("Error deleting user: " + data.message);
-      }
-    }
-
-    async function toggleFreeze(userId, currentFreezeStatus) {
-      const res = await fetch(`/api/users/${userId}`, {
-        method: "PUT",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({is_frozen: !currentFreezeStatus})
       });
-      const data = await res.json();
-      if (data.status === "ok") {
-        loadUsers();
-      } else {
-        alert("Error updating freeze status: " + data.message);
-      }
-    }
 
-    // Add User
-    document.getElementById("form-add-user").addEventListener("submit", async e => {
-      e.preventDefault();
-      const username = document.getElementById("new-username").value.trim();
-      const password = document.getElementById("new-password").value.trim();
-      const balance = parseFloat(document.getElementById("new-balance").value);
-      const broker = document.getElementById("new-broker").value.trim();
+      // Dummy data insertion - you should replace this with API calls
+      const users = [
+        { id: 1, username: "alice", balance: 5000, broker: "Alpha", is_frozen: false },
+        { id: 2, username: "bob", balance: 3000, broker: "Beta", is_frozen: true },
+        { id: 3, username: "charlie", balance: 7000, broker: "Gamma", is_frozen: false },
+      ];
 
-      const res = await fetch('/api/users', {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password, balance, broker})
+      const transactions = [
+        { id: 101, user_id: 1, type: "Deposit", amount: 1000, date: "2025-08-10" },
+        { id: 102, user_id: 2, type: "Withdraw", amount: 200, date: "2025-08-09" },
+      ];
+
+      const notifications = [
+        { id: 1, message: "Welcome Alice!", date: "2025-08-01" },
+        { id: 2, message: "Your account was frozen", date: "2025-08-05" },
+      ];
+
+      // Render users
+      const usersTableBody = document.getElementById("users-table-body");
+      users.forEach(user => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>$${user.balance.toFixed(2)}</td>
+          <td>${user.broker}</td>
+          <td>${user.is_frozen ? "Yes" : "No"}</td>
+          <td>
+            <button class="btn btn-sm btn-warning btn-freeze" data-id="${user.id}">
+              ${user.is_frozen ? "Unfreeze" : "Freeze"}
+            </button>
+            <button class="btn btn-sm btn-danger btn-delete" data-id="${user.id}">Delete</button>
+          </td>
+        `;
+        usersTableBody.appendChild(tr);
       });
-      const data = await res.json();
-      if (data.status === "ok") {
-        closeModal('modal-add-user');
-        loadUsers();
-      } else {
-        alert("Error creating user: " + data.message);
-      }
-    });
 
-    // Load transactions
-    async function loadTransactions() {
-      const res = await fetch('/api/transactions');
-      const data = await res.json();
-      if (data.status === "ok") {
-        const tbody = document.querySelector("#transactions-table tbody");
-        tbody.innerHTML = "";
-        data.data.forEach(t => {
-          const date = new Date(t.created_at).toLocaleString();
-          tbody.innerHTML += `<tr>
-            <td>${t.id}</td>
-            <td>${t.user_id}</td>
-            <td>${t.amount.toFixed(2)}</td>
-            <td>${t.type}</td>
-            <td>${t.description}</td>
-            <td>${date}</td>
-            <td><button class="btn btn-sm btn-danger" onclick="deleteTransaction(${t.id})">Delete</button></td>
-          </tr>`;
-        });
-      } else {
-        alert("Failed to load transactions: " + data.message);
-      }
-    }
-
-    async function deleteTransaction(transId) {
-      if (!confirm("Delete transaction ID " + transId + "?")) return;
-      const res = await fetch(`/api/transactions/${transId}`, {method: "DELETE"});
-      const data = await res.json();
-      if (data.status === "ok") {
-        loadTransactions();
-      } else {
-        alert("Error deleting transaction: " + data.message);
-      }
-    }
-
-    // Add Transaction
-    document.getElementById("form-add-transaction").addEventListener("submit", async e => {
-      e.preventDefault();
-      const user_id = parseInt(document.getElementById("trans-user-id").value);
-      const amount = parseFloat(document.getElementById("trans-amount").value);
-      const type = document.getElementById("trans-type").value;
-      const description = document.getElementById("trans-desc").value.trim();
-
-      const res = await fetch('/api/transactions', {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id, amount, type, description})
+      // Render transactions
+      const transactionsTableBody = document.getElementById("transactions-table-body");
+      transactions.forEach(tx => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${tx.id}</td>
+          <td>${tx.user_id}</td>
+          <td>${tx.type}</td>
+          <td>$${tx.amount.toFixed(2)}</td>
+          <td>${tx.date}</td>
+          <td>
+            <button class="btn btn-sm btn-danger btn-delete-tx" data-id="${tx.id}">Delete</button>
+          </td>
+        `;
+        transactionsTableBody.appendChild(tr);
       });
-      const data = await res.json();
-      if (data.status === "ok") {
-        closeModal('modal-add-transaction');
-        loadTransactions();
-      } else {
-        alert("Error adding transaction: " + data.message);
-      }
-    });
 
-    // Load Notifications
-    async function loadNotifications() {
-      const res = await fetch('/api/notifications?user_id='); // fetch all or filtered by user_id?
-      const data = await res.json();
-      if (data.status === "ok") {
-        const tbody = document.querySelector("#notifications-table tbody");
-        tbody.innerHTML = "";
-        data.data.forEach(n => {
-          const date = new Date(n.created_at).toLocaleString();
-          tbody.innerHTML += `<tr>
-            <td>${n.id}</td>
-            <td>${n.user_id}</td>
-            <td>${n.message}</td>
-            <td>${date}</td>
-          </tr>`;
-        });
-      } else {
-        alert("Failed to load notifications: " + data.message);
-      }
-    }
-
-    // Add Notification
-    document.getElementById("form-add-notification").addEventListener("submit", async e => {
-      e.preventDefault();
-      const user_id = parseInt(document.getElementById("notif-user-id").value);
-      const message = document.getElementById("notif-message").value.trim();
-
-      const res = await fetch('/api/notifications', {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({user_id, message})
+      // Render notifications
+      const notificationsList = document.getElementById("notifications-list");
+      notifications.forEach(note => {
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.textContent = note.message;
+        const dateSpan = document.createElement("span");
+        dateSpan.className = "badge bg-secondary rounded-pill";
+        dateSpan.textContent = note.date;
+        li.appendChild(dateSpan);
+        notificationsList.appendChild(li);
       });
-      const data = await res.json();
-      if (data.status === "ok") {
-        closeModal('modal-add-notification');
-        loadNotifications();
-      } else {
-        alert("Error sending notification: " + data.message);
-      }
-    });
 
-    // Initialize page by loading users by default
-    showSection('users');
-    loadUsers();
-    loadTransactions();
-    loadNotifications();
+      // TODO: Add event listeners for freeze/unfreeze, delete, add transaction etc.
+      // These should call your backend API endpoints via fetch/AJAX
+
+      document.getElementById("btnAddTransaction").addEventListener("click", () => {
+        alert("Add Transaction feature to be implemented.");
+      });
+    })();
   </script>
 </body>
 </html>
